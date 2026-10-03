@@ -1,0 +1,8 @@
+name = "wyrd-viral-telegram-bridge"
+main = "telegram-webhook.js"
+compatibility_date = "2024-09-01"
+
+# Secrets are NOT set here -- after `wrangler deploy`, set them with:
+#   wrangler secret put TELEGRAM_BOT_TOKEN
+#   wrangler secret put GITHUB_TOKEN
+#   wrangler secret put GITHUB_REPO
