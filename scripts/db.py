@@ -65,3 +65,26 @@ def get_stale_pending(older_than_hours: int):
     client = get_client()
     result = client.table("wyrd_viral_posts").select("*").eq("status", "pending").execute()
     return result.data
+
+
+def get_today_post_count() -> int:
+    """
+    Count posts published today (IST = UTC+5:30).
+    Supabase stores created_at in UTC -- we convert today IST start to UTC.
+    """
+    from datetime import datetime, timezone, timedelta
+    IST = timezone(timedelta(hours=5, minutes=30))
+    now_ist = datetime.now(IST)
+    # Start of today in IST, converted to UTC ISO string for the query
+    start_of_today_ist = now_ist.replace(hour=0, minute=0, second=0, microsecond=0)
+    start_utc = start_of_today_ist.astimezone(timezone.utc).isoformat()
+
+    client = get_client()
+    result = (
+        client.table("wyrd_viral_posts")
+        .select("id")
+        .eq("status", "published")
+        .gte("created_at", start_utc)
+        .execute()
+    )
+    return len(result.data)

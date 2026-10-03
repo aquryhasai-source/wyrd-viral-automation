@@ -1,0 +1,25 @@
+name: Daily Post Nudge
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"   # every 30 minutes
+  workflow_dispatch: {}       # manual trigger for testing
+
+jobs:
+  nudge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install deps
+        run: pip install -r requirements.txt
+      - name: Check and nudge
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: python main_nudge.py
