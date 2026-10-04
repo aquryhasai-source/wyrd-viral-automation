@@ -112,11 +112,14 @@ def _write_ass(path: str, caption: str, duration: float) -> None:
     cap_end = duration if cap_end is None else min(float(cap_end), duration)
 
     # Bold=-1 matches the old engine's style lines exactly.
+    top = cfg.CAPTION_POSITION == "top"
+    cap_align = 8 if top else 2  # ASS numpad alignment: 8 = top-centre, 2 = bottom-centre
+    cap_margin_v = cfg.CAPTION_TOP_MARGIN if top else cfg.CAPTION_BOTTOM_MARGIN
     cap_style = (
         f"Style: Caption,{cfg.CAPTION_FONT},{cfg.CAPTION_FONT_SIZE},"
         f"{_ass_color(cfg.CAPTION_COLOR)},&H00000000,{_ass_color(cfg.CAPTION_STROKE_COLOR)},&H00000000,"
-        f"-1,0,0,0,100,100,0,0,1,{cfg.CAPTION_STROKE_WIDTH},0,2,"
-        f"{cfg.CAPTION_SIDE_MARGIN},{cfg.CAPTION_SIDE_MARGIN},{cfg.CAPTION_BOTTOM_MARGIN},1"
+        f"-1,0,0,0,100,100,0,0,1,{cfg.CAPTION_STROKE_WIDTH},0,{cap_align},"
+        f"{cfg.CAPTION_SIDE_MARGIN},{cfg.CAPTION_SIDE_MARGIN},{cap_margin_v},1"
     )
     title_style = (
         f"Style: Title,{cfg.TITLE_FONT},{cfg.TITLE_FONT_SIZE},"

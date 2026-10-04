@@ -51,11 +51,13 @@ CAPTION_FONT_SIZE = 80
 CAPTION_COLOR = "#FFFFFF"
 CAPTION_STROKE_COLOR = "#000000"
 CAPTION_STROKE_WIDTH = 4
-CAPTION_BOTTOM_MARGIN = 330
+CAPTION_POSITION = "top"  # "top" or "bottom"
+CAPTION_TOP_MARGIN = 300  # px from the top edge (clears the Shorts search/menu bar)
+CAPTION_BOTTOM_MARGIN = 330  # used when CAPTION_POSITION = "bottom"
 CAPTION_SIDE_MARGIN = 60
 CAPTION_MAX_CHARS_PER_LINE = 22  # fallback only; wrapping is pixel-measured
 CAPTION_START_SECONDS = 0.0
-CAPTION_END_SECONDS = None  # None = whole clip
+CAPTION_END_SECONDS = 3.0  # caption shows for the first 3 seconds only (None = whole clip)
 
 # Optional title block (old channel style: Courier New 96 amber, 110px from top).
 # Off by default -- it was for the folklore videos. Liberation Mono Bold is the
@@ -72,8 +74,8 @@ TITLE_SECONDS = 3.0
 
 FONTS_DIR = "assets/fonts"
 WATERMARK_PATH = "assets/watermark.png"  # supply your own logo here
-WATERMARK_WIDTH = 240
-WATERMARK_MARGIN_X = 40
+WATERMARK_WIDTH = 275
+WATERMARK_MARGIN_X = 160  # clears the Shorts Like/Share/Remix button column
 WATERMARK_MARGIN_Y = 40
 
 # Encode (same as WyrdEngine RENDER block)
