@@ -18,7 +18,7 @@ def generate_caption(title: str) -> str:
     response = client.chat.completions.create(
         # Check console.groq.com/docs/models for the current model list before
         # relying on this -- Groq's lineup changes fairly often.
-        model="llama-3.3-70b-versatile",
+        model="openai/gpt-oss-120b",
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": f"Source title: {title}"},
