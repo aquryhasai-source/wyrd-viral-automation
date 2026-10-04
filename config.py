@@ -89,3 +89,7 @@ RUNS_PER_DAY = 2
 # --- Approval gate ---
 APPROVAL_TIMEOUT_HOURS = 6
 APPROVAL_DEFAULT_ON_TIMEOUT = "reject"  # "reject" or "approve" -- start conservative
+
+# Telegram-sent clips: post to YouTube only for now. Flip to True once Meta
+# app review is approved to also post to Facebook + Instagram.
+PUBLISH_META = False

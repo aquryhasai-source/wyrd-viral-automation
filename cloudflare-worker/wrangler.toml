@@ -2,7 +2,16 @@ name = "wyrd-viral-telegram-bridge"
 main = "telegram-webhook.js"
 compatibility_date = "2024-09-01"
 
+# Conversation state (title -> description -> tags). Create once with:
+#   wrangler kv namespace create SESSIONS
+# then paste the id it prints below.
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "PASTE_KV_NAMESPACE_ID_HERE"
+
 # Secrets are NOT set here -- after `wrangler deploy`, set them with:
 #   wrangler secret put TELEGRAM_BOT_TOKEN
 #   wrangler secret put GITHUB_TOKEN
 #   wrangler secret put GITHUB_REPO
+# Optional (recommended, only your chat can trigger posting):
+#   wrangler secret put ALLOWED_CHAT_ID

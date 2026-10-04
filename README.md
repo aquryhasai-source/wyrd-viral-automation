@@ -129,3 +129,15 @@ stroke, 330px above the bottom edge; contrast 1.08 / brightness x0.96 grade;
 libx264 veryfast crf 22; AAC 192k; faststart. Fonts are bundled in
 `assets/fonts/`. Landscape clips get a blurred fill (`FIT_MODE = "crop"` for the
 old hard crop). Clips are capped at 59s.
+
+## Telegram flow (video -> title -> description -> tags)
+
+Send the bot a video; it asks for the title, then description, then tags, then
+dispatches `receive_video`. The title is burned onto the video as the caption
+and used as the YouTube title. Posts to YouTube only (`PUBLISH_META = False`
+in `config.py`). `/cancel` aborts. One-time worker setup:
+
+    cd cloudflare-worker
+    wrangler kv namespace create SESSIONS     # paste the id into wrangler.toml
+    wrangler secret put ALLOWED_CHAT_ID       # optional but recommended
+    wrangler deploy

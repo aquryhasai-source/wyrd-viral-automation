@@ -20,6 +20,9 @@ jobs:
       - name: Receive, edit and post video
         env:
           FILE_ID: ${{ github.event.client_payload.file_id }}
+          TITLE: ${{ github.event.client_payload.title }}
+          DESCRIPTION: ${{ github.event.client_payload.description }}
+          TAGS: ${{ github.event.client_payload.tags }}
           CAPTION: ${{ github.event.client_payload.caption }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
