@@ -72,7 +72,7 @@ TITLE_SECONDS = 3.0
 
 FONTS_DIR = "assets/fonts"
 WATERMARK_PATH = "assets/watermark.png"  # supply your own logo here
-WATERMARK_WIDTH = 240
+WATERMARK_WIDTH = 150
 WATERMARK_MARGIN_X = 40
 WATERMARK_MARGIN_Y = 40
 
