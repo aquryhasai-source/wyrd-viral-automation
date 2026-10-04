@@ -7,7 +7,7 @@ compatibility_date = "2024-09-01"
 # then paste the id it prints below.
 [[kv_namespaces]]
 binding = "SESSIONS"
-id = "PASTE_KV_NAMESPACE_ID_HERE"
+id = "50577c8cec0e476aba7b53a7b1c9b896"
 
 # Secrets are NOT set here -- after `wrangler deploy`, set them with:
 #   wrangler secret put TELEGRAM_BOT_TOKEN
