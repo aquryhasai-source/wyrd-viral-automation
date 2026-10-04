@@ -1,0 +1,2 @@
+LuckiestGuy-Regular.ttf  - Luckiest Guy, Apache License 2.0 (Google Fonts). Caption font.
+LiberationMono-Bold.ttf  - Liberation Mono, SIL OFL 1.1. Metric-compatible stand-in for Courier New (title font).

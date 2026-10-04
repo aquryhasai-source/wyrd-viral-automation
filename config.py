@@ -30,11 +30,58 @@ BLOCKLIST_DOMAINS = [
     "espn.com", "nba.com", "nfl.com",
 ]
 
-# --- Editing ---
+# --- Editing (ported from WyrdEngine_v1 config.yaml -- values tuned over ~2 months) ---
 OUTPUT_RESOLUTION = (1080, 1920)  # vertical short format
+FPS = 30
+MAX_DURATION_SECONDS = 59  # Shorts limit is 60s; trim anything longer
+
+# Landscape/square clips: "blur" = fitted clip over a blurred, darkened fill of
+# itself (nothing cropped); "crop" = hard centre-crop to 9:16 (old behaviour).
+# Clips already close to 9:16 are always simply scaled+cropped to fill.
+FIT_MODE = "blur"
+
+# Colour grade -- the live WyrdEngine look (EFFECT_PROFILES.wyrd_fast): contrast
+# 1.08, brightness x0.96, no sepia/vignette/grain. Set both to 1.0 to disable.
+GRADE_CONTRAST = 1.08
+GRADE_BRIGHTNESS = 0.96
+
+# Caption: Luckiest Guy 80, white, 4px black stroke, 330px above bottom edge.
+CAPTION_FONT = "Luckiest Guy"
+CAPTION_FONT_SIZE = 80
+CAPTION_COLOR = "#FFFFFF"
+CAPTION_STROKE_COLOR = "#000000"
+CAPTION_STROKE_WIDTH = 4
+CAPTION_BOTTOM_MARGIN = 330
+CAPTION_SIDE_MARGIN = 60
+CAPTION_MAX_CHARS_PER_LINE = 22  # fallback only; wrapping is pixel-measured
+CAPTION_START_SECONDS = 0.0
+CAPTION_END_SECONDS = None  # None = whole clip
+
+# Optional title block (old channel style: Courier New 96 amber, 110px from top).
+# Off by default -- it was for the folklore videos. Liberation Mono Bold is the
+# bundled stand-in for Courier New.
+TITLE_ENABLED = False
+TITLE_TEXT = ""
+TITLE_FONT = "Liberation Mono"
+TITLE_FONT_SIZE = 96
+TITLE_COLOR = "#FFBA08"
+TITLE_STROKE_COLOR = "#000000"
+TITLE_STROKE_WIDTH = 2
+TITLE_TOP_MARGIN = 110
+TITLE_SECONDS = 3.0
+
+FONTS_DIR = "assets/fonts"
 WATERMARK_PATH = "assets/watermark.png"  # supply your own logo here
-WATERMARK_POSITION = "bottom_right"
-CAPTION_FONT_SIZE = 64
+WATERMARK_WIDTH = 240
+WATERMARK_MARGIN_X = 40
+WATERMARK_MARGIN_Y = 40
+
+# Encode (same as WyrdEngine RENDER block)
+VIDEO_CODEC = "libx264"
+PRESET = "veryfast"
+CRF = 22
+AUDIO_CODEC = "aac"
+AUDIO_BITRATE = "192k"
 
 # --- Scheduling (informational -- actual schedule lives in the workflow YAML) ---
 RUNS_PER_DAY = 2
