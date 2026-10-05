@@ -103,7 +103,7 @@ def _ass_time(sec: float) -> str:
     return f"{h}:{m:02d}:{s:02d}.{c:02d}"
 
 
-def _write_ass(path: str, caption: str, duration: float) -> None:
+def _write_ass(path: str, caption: str, duration: float, subtitles=None) -> None:
     width, height = cfg.OUTPUT_RESOLUTION
     caption = _clean_text(caption)
     text_px = width - 2 * cfg.CAPTION_SIDE_MARGIN
@@ -121,6 +121,12 @@ def _write_ass(path: str, caption: str, duration: float) -> None:
         f"-1,0,0,0,100,100,0,0,1,{cfg.CAPTION_STROKE_WIDTH},0,{cap_align},"
         f"{cfg.CAPTION_SIDE_MARGIN},{cfg.CAPTION_SIDE_MARGIN},{cap_margin_v},1"
     )
+    sub_style = (
+        f"Style: Subtitle,{cfg.CAPTION_FONT},{cfg.SUBTITLE_FONT_SIZE},"
+        f"{_ass_color(cfg.CAPTION_COLOR)},&H00000000,{_ass_color(cfg.CAPTION_STROKE_COLOR)},&H00000000,"
+        f"-1,0,0,0,100,100,0,0,1,{cfg.CAPTION_STROKE_WIDTH},0,2,"
+        f"{cfg.CAPTION_SIDE_MARGIN},{cfg.CAPTION_SIDE_MARGIN},{cfg.SUBTITLE_BOTTOM_MARGIN},1"
+    )
     title_style = (
         f"Style: Title,{cfg.TITLE_FONT},{cfg.TITLE_FONT_SIZE},"
         f"{_ass_color(cfg.TITLE_COLOR)},&H00000000,{_ass_color(cfg.TITLE_STROKE_COLOR)},&H00000000,"
@@ -136,7 +142,7 @@ def _write_ass(path: str, caption: str, duration: float) -> None:
         "Format: Name,Fontname,Fontsize,PrimaryColour,SecondaryColour,OutlineColour,BackColour,"
         "Bold,Italic,Underline,StrikeOut,ScaleX,ScaleY,Spacing,Angle,BorderStyle,Outline,Shadow,"
         "Alignment,MarginL,MarginR,MarginV,Encoding",
-        cap_style, title_style, "",
+        cap_style, sub_style, title_style, "",
         "[Events]",
         "Format: Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text",
     ]
@@ -145,6 +151,14 @@ def _write_ass(path: str, caption: str, duration: float) -> None:
             f"Dialogue: 0,{_ass_time(cap_start)},{_ass_time(cap_end)},Caption,,0,0,0,,"
             f"{_ass_text(_wrap(caption, 'LuckiestGuy-Regular.ttf', cfg.CAPTION_FONT_SIZE, text_px, cfg.CAPTION_MAX_CHARS_PER_LINE))}"
         )
+    for start, end, text in (subtitles or []):
+        start, end = max(0.0, float(start)), min(float(end), duration)
+        text = _clean_text(text)
+        if text and end > start:
+            lines = _wrap(text, "LuckiestGuy-Regular.ttf", cfg.SUBTITLE_FONT_SIZE, text_px, 20)
+            out.append(
+                f"Dialogue: 0,{_ass_time(start)},{_ass_time(end)},Subtitle,,0,0,0,,{_ass_text(lines)}"
+            )
     title = _clean_text(cfg.TITLE_TEXT)
     if cfg.TITLE_ENABLED and title:
         t_end = min(float(cfg.TITLE_SECONDS), duration)
@@ -200,7 +214,8 @@ def _video_chain(src_w: int, src_h: int, wm_idx: int | None) -> str:
 
 
 # ---------------------------------------------------------------- public API
-def edit_video(input_path: str, output_path: str, caption: str) -> bool:
+def edit_video(input_path: str, output_path: str, caption: str, subtitles=None) -> bool:
+    """caption: on-screen title ("" = none). subtitles: [(start_s, end_s, text), ...] or None."""
     info = _probe(input_path)
     if not info or info["duration"] <= 0:
         return False
@@ -242,7 +257,7 @@ def edit_video(input_path: str, output_path: str, caption: str) -> bool:
 
     work = tempfile.mkdtemp(prefix="wyrd_edit_")
     try:
-        _write_ass(os.path.join(work, "captions.ass"), caption, D)
+        _write_ass(os.path.join(work, "captions.ass"), caption, D, subtitles)
         parts = [_video_chain(info["w"], info["h"], wm_idx)]
 
         # main segment: trimmed to exactly D so audio/video stay in step at the join

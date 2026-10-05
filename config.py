@@ -98,3 +98,13 @@ PUBLISH_META = False
 # Outro appended to the end of every video (3s logo animation, 1080x1920).
 OUTRO_ENABLED = True
 OUTRO_PATH = "assets/outro.mp4"
+
+# Subtitles (optional per video, turned on from Telegram). Narration is
+# transcribed with Groq Whisper and burned in at the bottom, same font as the title.
+SUBTITLE_MODEL = "whisper-large-v3-turbo"
+SUBTITLE_FALLBACK_MODEL = "whisper-large-v3"  # tried if the first model is retired
+SUBTITLE_FONT_SIZE = 72
+SUBTITLE_BOTTOM_MARGIN = 330
+SUBTITLE_MAX_LINES = 2
+SUBTITLE_MAX_CHUNK_SECONDS = 3.5
+SUBTITLE_NO_SPEECH_THRESHOLD = 0.6  # drop Whisper segments it thinks are not speech (music, noise)

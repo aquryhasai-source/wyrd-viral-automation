@@ -130,14 +130,21 @@ libx264 veryfast crf 22; AAC 192k; faststart. Fonts are bundled in
 `assets/fonts/`. Landscape clips get a blurred fill (`FIT_MODE = "crop"` for the
 old hard crop).
 
-## Telegram flow (video -> title -> description -> tags)
+## Telegram flow (video -> questions -> preview -> approve -> YouTube)
 
-Send the bot a video; it asks for the title, then description, then tags, then
-dispatches `receive_video`. The title is burned onto the video as the caption
-and used as the YouTube title. Posts to YouTube only (`PUBLISH_META = False`
-in `config.py`). `/cancel` aborts. One-time worker setup:
+1. Send the bot a video. It asks, in order: TITLE (the YouTube title), DESCRIPTION, TAGS,
+   then two tap questions: show the TITLE on the video (top, first 3 seconds) On/Off, and
+   SUBTITLES from the narration On/Off.
+2. GitHub Actions renders the video (grade, watermark, optional title, optional subtitles,
+   3-second outro) and sends it back to you with Approve / Reject buttons. Nothing is
+   posted yet. Previews not answered within `APPROVAL_TIMEOUT_HOURS` (6) are discarded.
+3. Approve uploads to YouTube Shorts with your title, description and tags. Reject deletes
+   the preview. Facebook/Instagram stay off (`PUBLISH_META = False`) until Meta approves.
+
+Subtitles use Groq Whisper (`SUBTITLE_MODEL` in `config.py`), burned in at the bottom in the
+title font. `/cancel` aborts a conversation. One-time worker setup:
 
     cd cloudflare-worker
     wrangler kv namespace create SESSIONS     # paste the id into wrangler.toml
-    wrangler secret put ALLOWED_CHAT_ID       # optional but recommended
+    wrangler secret put ALLOWED_CHAT_ID       # recommended
     wrangler deploy

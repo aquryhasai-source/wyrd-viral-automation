@@ -1,4 +1,4 @@
-name: Receive and Post Video
+name: Receive and Render Video
 
 on:
   repository_dispatch:
@@ -17,22 +17,17 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - name: Install Python deps
         run: pip install -r requirements.txt
-      - name: Receive, edit and post video
+      - name: Receive, edit and send preview
         env:
           FILE_ID: ${{ github.event.client_payload.file_id }}
           TITLE: ${{ github.event.client_payload.title }}
           DESCRIPTION: ${{ github.event.client_payload.description }}
           TAGS: ${{ github.event.client_payload.tags }}
-          CAPTION: ${{ github.event.client_payload.caption }}
+          TITLE_ON: ${{ github.event.client_payload.title_on }}
+          SUBS_ON: ${{ github.event.client_payload.subs_on }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
-          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
-          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-          META_PAGE_ID: ${{ secrets.META_PAGE_ID }}
-          META_PAGE_ACCESS_TOKEN: ${{ secrets.META_PAGE_ACCESS_TOKEN }}
-          META_IG_BUSINESS_ACCOUNT_ID: ${{ secrets.META_IG_BUSINESS_ACCOUNT_ID }}
         run: python main_receive.py
