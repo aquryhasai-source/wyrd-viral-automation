@@ -15,8 +15,13 @@ jobs:
           python-version: "3.11"
       - name: Install ffmpeg
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Cache Whisper model
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: faster-whisper-small-v1
       - name: Install Python deps
-        run: pip install -r requirements.txt
+        run: pip install -r requirements-render.txt
       - name: Receive, edit and send preview
         env:
           FILE_ID: ${{ github.event.client_payload.file_id }}

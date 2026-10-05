@@ -125,7 +125,7 @@ def _write_ass(path: str, caption: str, duration: float, subtitles=None) -> None
         f"Style: Subtitle,{cfg.CAPTION_FONT},{cfg.SUBTITLE_FONT_SIZE},"
         f"{_ass_color(cfg.CAPTION_COLOR)},&H00000000,{_ass_color(cfg.CAPTION_STROKE_COLOR)},&H00000000,"
         f"-1,0,0,0,100,100,0,0,1,{cfg.CAPTION_STROKE_WIDTH},0,2,"
-        f"{cfg.CAPTION_SIDE_MARGIN},{cfg.CAPTION_SIDE_MARGIN},{cfg.SUBTITLE_BOTTOM_MARGIN},1"
+        f"0,0,{cfg.SUBTITLE_BOTTOM_MARGIN},1"
     )
     title_style = (
         f"Style: Title,{cfg.TITLE_FONT},{cfg.TITLE_FONT_SIZE},"

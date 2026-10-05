@@ -1,5 +1,9 @@
 """
-Narration -> subtitle cues, using Groq's hosted Whisper.
+Narration -> subtitle cues.
+
+Primary engine (same as WyrdEngine_v1): faster-whisper "small", CPU int8,
+word_timestamps=True, vad_filter=True. Every word becomes its own cue at its
+exact start/end time (one word on screen at a time). Fallback: Groq's hosted Whisper.
 
 transcribe_cues(video_path) returns (cues, reason):
   cues   -- list of (start_s, end_s, text), [] if no speech was found,
@@ -23,7 +27,7 @@ GROQ_URL = "https://api.groq.com/openai/v1/audio/transcriptions"
 def _extract_audio(video_path: str, out_path: str) -> bool:
     cmd = [
         "ffmpeg", "-y", "-hide_banner", "-loglevel", "error", "-i", video_path,
-        "-vn", "-ac", "1", "-ar", "16000", "-b:a", "32k", out_path,
+        "-vn", "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", out_path,
     ]
     r = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
     return r.returncode == 0 and os.path.exists(out_path) and os.path.getsize(out_path) > 0
@@ -34,8 +38,9 @@ def _call_whisper(audio_path: str, model: str) -> requests.Response:
         return requests.post(
             GROQ_URL,
             headers={"Authorization": f"Bearer {os.environ['GROQ_API_KEY']}"},
-            files={"file": (os.path.basename(audio_path), f, "audio/mpeg")},
+            files={"file": (os.path.basename(audio_path), f, "audio/wav")},
             data=[
+                *([("language", cfg.SUBTITLE_LANGUAGE)] if cfg.SUBTITLE_LANGUAGE else []),
                 ("model", model),
                 ("response_format", "verbose_json"),
                 ("temperature", "0"),
@@ -106,29 +111,74 @@ def _chunk(words: list[tuple[float, float, str]]) -> list[tuple[float, float, st
     return [tuple(c) for c in cues if c[1] > c[0]]
 
 
+def _transcribe_local(audio_path: str) -> list[tuple[float, float, str]]:
+    """Identical settings to WyrdEngine_v1's alignment.transcribe_words()."""
+    from faster_whisper import WhisperModel
+
+    model = WhisperModel(cfg.SUBTITLE_LOCAL_MODEL, device="cpu", compute_type="int8")
+    segments, _info = model.transcribe(
+        audio_path,
+        language=cfg.SUBTITLE_LANGUAGE,
+        word_timestamps=True,
+        vad_filter=True,
+    )
+    words = []
+    for segment in segments:
+        for w in segment.words or []:
+            clean = w.word.strip()
+            if clean:
+                words.append((round(float(w.start), 3), round(float(w.end), 3), clean))
+    return words
+
+
+def _word_cues(words: list[tuple[float, float, str]]) -> list[tuple[float, float, str]]:
+    """One cue per word at its exact timing (as WyrdEngine_v1's write_ass_subtitles).
+    Only change: a word never overlaps the next one, so libass doesn't stack them."""
+    cues = []
+    for i, (start, end, text) in enumerate(words):
+        if end <= start:
+            end = start + 0.05
+        if i + 1 < len(words) and words[i + 1][0] > start:
+            end = min(end, words[i + 1][0])
+        if end > start:
+            cues.append((start, end, text))
+    return cues
+
+
 def transcribe_cues(video_path: str):
     info = _probe(video_path)
     if not info or not info["has_audio"]:
         return [], "the clip has no audio track"
-    if not os.environ.get("GROQ_API_KEY"):
-        return None, "GROQ_API_KEY is not set"
 
     work = tempfile.mkdtemp(prefix="wyrd_stt_")
-    audio = os.path.join(work, "audio.mp3")
+    audio = os.path.join(work, "audio.wav")
     try:
         if not _extract_audio(video_path, audio):
             return None, "could not extract the audio"
-        resp = _call_whisper(audio, cfg.SUBTITLE_MODEL)
-        if resp.status_code in (400, 404) and cfg.SUBTITLE_FALLBACK_MODEL:
-            print(f"Whisper model {cfg.SUBTITLE_MODEL} failed ({resp.status_code}): {resp.text[:300]}")
-            resp = _call_whisper(audio, cfg.SUBTITLE_FALLBACK_MODEL)
-        if not resp.ok:
-            print(f"Whisper error {resp.status_code}: {resp.text[:500]}")
-            return None, f"Groq transcription failed ({resp.status_code})"
-        words = _speech_words(resp.json())
+        words = None
+        if cfg.SUBTITLE_ENGINE == "local":
+            try:
+                words = _transcribe_local(audio)
+            except Exception as e:
+                print(f"Local faster-whisper failed: {e}")
+                if not cfg.SUBTITLE_FALLBACK_TO_GROQ:
+                    return None, "local transcription failed"
+        if words is None:  # Groq engine (chosen, or fallback)
+            if not os.environ.get("GROQ_API_KEY"):
+                return None, "GROQ_API_KEY is not set"
+            resp = _call_whisper(audio, cfg.SUBTITLE_MODEL)
+            if resp.status_code in (400, 404) and cfg.SUBTITLE_FALLBACK_MODEL:
+                print(f"Whisper model {cfg.SUBTITLE_MODEL} failed ({resp.status_code}): {resp.text[:300]}")
+                resp = _call_whisper(audio, cfg.SUBTITLE_FALLBACK_MODEL)
+            if not resp.ok:
+                print(f"Whisper error {resp.status_code}: {resp.text[:500]}")
+                return None, f"transcription failed ({resp.status_code})"
+            words = _speech_words(resp.json())
         if not words:
             return [], "no speech was detected"
-        return _chunk(words), "ok"
+        if cfg.SUBTITLE_MODE == "phrase":
+            return _chunk(words), "ok"
+        return _word_cues(words), "ok"
     except Exception as e:  # network, JSON, ffmpeg timeouts...
         print(f"Transcription error: {e}")
         return None, "transcription error"

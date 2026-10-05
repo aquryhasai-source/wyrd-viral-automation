@@ -99,12 +99,21 @@ PUBLISH_META = False
 OUTRO_ENABLED = True
 OUTRO_PATH = "assets/outro.mp4"
 
-# Subtitles (optional per video, turned on from Telegram). Narration is
-# transcribed with Groq Whisper and burned in at the bottom, same font as the title.
-SUBTITLE_MODEL = "whisper-large-v3-turbo"
-SUBTITLE_FALLBACK_MODEL = "whisper-large-v3"  # tried if the first model is retired
-SUBTITLE_FONT_SIZE = 72
+# Subtitles (optional per video, turned on from Telegram).
+# Same method as WyrdEngine_v1: faster-whisper "small" (CPU, int8) with word timestamps and
+# the VAD filter, one word on screen at a time at its exact start/end time. Style matches
+# the old captions: Luckiest Guy 80, white, 4px black stroke, 330px above the bottom.
+SUBTITLE_MODE = "word"  # "word" = one word at a time (WyrdEngine look); "phrase" = short lines
+SUBTITLE_ENGINE = "local"  # "local" = faster-whisper (as WyrdEngine); "groq" = Groq Whisper API
+SUBTITLE_FALLBACK_TO_GROQ = True  # if the local engine errors (model download etc.), try Groq
+SUBTITLE_LOCAL_MODEL = "small"
+SUBTITLE_LANGUAGE = "en"  # as in WyrdEngine; set to None to auto-detect the spoken language
+SUBTITLE_FONT_SIZE = 80
 SUBTITLE_BOTTOM_MARGIN = 330
+# Groq path only
+SUBTITLE_MODEL = "whisper-large-v3-turbo"
+SUBTITLE_FALLBACK_MODEL = "whisper-large-v3"
+SUBTITLE_NO_SPEECH_THRESHOLD = 0.6
+# "phrase" mode only
 SUBTITLE_MAX_LINES = 2
 SUBTITLE_MAX_CHUNK_SECONDS = 3.5
-SUBTITLE_NO_SPEECH_THRESHOLD = 0.6  # drop Whisper segments it thinks are not speech (music, noise)

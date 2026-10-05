@@ -141,8 +141,9 @@ old hard crop).
 3. Approve uploads to YouTube Shorts with your title, description and tags. Reject deletes
    the preview. Facebook/Instagram stay off (`PUBLISH_META = False`) until Meta approves.
 
-Subtitles use Groq Whisper (`SUBTITLE_MODEL` in `config.py`), burned in at the bottom in the
-title font. `/cancel` aborts a conversation. One-time worker setup:
+Subtitles work like WyrdEngine_v1: faster-whisper "small" (CPU, int8, word timestamps, VAD
+filter), one word on screen at a time at its exact timing, Luckiest Guy 80 at the bottom. If
+the local model fails, Groq Whisper is the fallback. Settings are in `config.py` (`SUBTITLE_*`). `/cancel` aborts a conversation. One-time worker setup:
 
     cd cloudflare-worker
     wrangler kv namespace create SESSIONS     # paste the id into wrangler.toml
