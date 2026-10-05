@@ -33,7 +33,6 @@ BLOCKLIST_DOMAINS = [
 # --- Editing (ported from WyrdEngine_v1 config.yaml -- values tuned over ~2 months) ---
 OUTPUT_RESOLUTION = (1080, 1920)  # vertical short format
 FPS = 30
-MAX_DURATION_SECONDS = 59  # Shorts limit is 60s; trim anything longer
 
 # Landscape/square clips: "blur" = fitted clip over a blurred, darkened fill of
 # itself (nothing cropped); "crop" = hard centre-crop to 9:16 (old behaviour).
@@ -95,3 +94,7 @@ APPROVAL_DEFAULT_ON_TIMEOUT = "reject"  # "reject" or "approve" -- start conserv
 # Telegram-sent clips: post to YouTube only for now. Flip to True once Meta
 # app review is approved to also post to Facebook + Instagram.
 PUBLISH_META = False
+
+# Outro appended to the end of every video (3s logo animation, 1080x1920).
+OUTRO_ENABLED = True
+OUTRO_PATH = "assets/outro.mp4"

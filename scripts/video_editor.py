@@ -157,7 +157,8 @@ def _write_ass(path: str, caption: str, duration: float) -> None:
 
 
 # ---------------------------------------------------------------- filters
-def _video_chain(src_w: int, src_h: int, use_watermark: bool) -> str:
+def _video_chain(src_w: int, src_h: int, wm_idx: int | None) -> str:
+    """Fit -> grade -> watermark -> burned-in captions. Produces [main_v]."""
     W, H = cfg.OUTPUT_RESOLUTION
     src_ratio, tgt_ratio = src_w / src_h, W / H
     near_vertical = abs(src_ratio - tgt_ratio) / tgt_ratio < 0.06
@@ -182,9 +183,9 @@ def _video_chain(src_w: int, src_h: int, use_watermark: bool) -> str:
         f"fps={cfg.FPS},format=yuv420p[graded]"
     )
 
-    if use_watermark:
+    if wm_idx is not None:
         wm = (
-            f"[1:v]scale={cfg.WATERMARK_WIDTH}:-1[wm];"
+            f"[{wm_idx}:v]scale={cfg.WATERMARK_WIDTH}:-1[wm];"
             f"[graded][wm]overlay=W-w-{cfg.WATERMARK_MARGIN_X}:H-h-{cfg.WATERMARK_MARGIN_Y}[marked]"
         )
         last = "marked"
@@ -193,7 +194,7 @@ def _video_chain(src_w: int, src_h: int, use_watermark: bool) -> str:
 
     subs = (
         f"[{last}]subtitles=filename=captions.ass:"
-        f"fontsdir='{os.path.abspath(cfg.FONTS_DIR)}'[out]"
+        f"fontsdir='{os.path.abspath(cfg.FONTS_DIR)}'[main_v]"
     )
     return ";".join(p for p in (fit, grade, wm, subs) if p)
 
@@ -204,32 +205,88 @@ def edit_video(input_path: str, output_path: str, caption: str) -> bool:
     if not info or info["duration"] <= 0:
         return False
 
-    duration = min(info["duration"], float(cfg.MAX_DURATION_SECONDS))
+    W, H = cfg.OUTPUT_RESOLUTION
+    D = info["duration"]  # no length cap: the whole clip is kept
+
     use_watermark = os.path.exists(cfg.WATERMARK_PATH)
     if not use_watermark:
         print(f"Watermark not found at {cfg.WATERMARK_PATH}; continuing without it")
 
+    outro_info = None
+    if cfg.OUTRO_ENABLED:
+        if os.path.exists(cfg.OUTRO_PATH):
+            outro_info = _probe(cfg.OUTRO_PATH)
+            if not outro_info or outro_info["duration"] <= 0:
+                print("Outro could not be read; continuing without it")
+                outro_info = None
+        else:
+            print(f"Outro not found at {cfg.OUTRO_PATH}; continuing without it")
+
+    # --- inputs (indexes follow the order they are added) ---
+    inputs = [os.path.abspath(input_path)]
+    extra_flags: dict[int, list[str]] = {}
+    nxt = 1
+    wm_idx = None
+    if use_watermark:
+        inputs.append(os.path.abspath(cfg.WATERMARK_PATH))
+        wm_idx, nxt = nxt, nxt + 1
+    outro_idx = None
+    if outro_info:
+        inputs.append(os.path.abspath(cfg.OUTRO_PATH))
+        outro_idx, nxt = nxt, nxt + 1
+    sil_idx = None
+    if not info["has_audio"] or (outro_info and not outro_info["has_audio"]):
+        inputs.append("anullsrc=r=44100:cl=stereo")
+        extra_flags[nxt] = ["-f", "lavfi"]
+        sil_idx, nxt = nxt, nxt + 1
+
     work = tempfile.mkdtemp(prefix="wyrd_edit_")
     try:
-        _write_ass(os.path.join(work, "captions.ass"), caption, duration)
-        filter_complex = _video_chain(info["w"], info["h"], use_watermark)
+        _write_ass(os.path.join(work, "captions.ass"), caption, D)
+        parts = [_video_chain(info["w"], info["h"], wm_idx)]
 
-        cmd = ["ffmpeg", "-y", "-hide_banner", "-loglevel", "error", "-i", os.path.abspath(input_path)]
-        if use_watermark:
-            cmd += ["-i", os.path.abspath(cfg.WATERMARK_PATH)]
-        cmd += ["-filter_complex", filter_complex, "-map", "[out]"]
+        # main segment: trimmed to exactly D so audio/video stay in step at the join
+        parts.append(f"[main_v]trim=duration={D:.3f},setpts=PTS-STARTPTS[mv]")
         if info["has_audio"]:
-            cmd += ["-map", "0:a:0", "-c:a", cfg.AUDIO_CODEC, "-b:a", cfg.AUDIO_BITRATE, "-ar", "44100"]
+            parts.append(
+                f"[0:a:0]aresample=44100,aformat=channel_layouts=stereo,"
+                f"apad,atrim=duration={D:.3f},asetpts=PTS-STARTPTS[ma]"
+            )
         else:
-            cmd += ["-an"]
+            parts.append(f"[{sil_idx}:a]atrim=duration={D:.3f},asetpts=PTS-STARTPTS[ma]")
+
+        if outro_info:
+            OD = outro_info["duration"]
+            parts.append(
+                f"[{outro_idx}:v]scale={W}:{H}:force_original_aspect_ratio=decrease,"
+                f"pad={W}:{H}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps={cfg.FPS},format=yuv420p,"
+                f"trim=duration={OD:.3f},setpts=PTS-STARTPTS[ov]"
+            )
+            if outro_info["has_audio"]:
+                parts.append(
+                    f"[{outro_idx}:a:0]aresample=44100,aformat=channel_layouts=stereo,"
+                    f"apad,atrim=duration={OD:.3f},asetpts=PTS-STARTPTS[oa]"
+                )
+            else:
+                parts.append(f"[{sil_idx}:a]atrim=duration={OD:.3f},asetpts=PTS-STARTPTS[oa]")
+            parts.append("[mv][ma][ov][oa]concat=n=2:v=1:a=1[outv][outa]")
+        else:
+            parts.append("[mv]null[outv];[ma]anull[outa]")
+
+        cmd = ["ffmpeg", "-y", "-hide_banner", "-loglevel", "error"]
+        for i, path in enumerate(inputs):
+            cmd += extra_flags.get(i, []) + ["-i", path]
         cmd += [
+            "-filter_complex", ";".join(parts),
+            "-map", "[outv]", "-map", "[outa]",
             "-c:v", cfg.VIDEO_CODEC, "-preset", cfg.PRESET, "-crf", str(cfg.CRF),
             "-pix_fmt", "yuv420p", "-r", str(cfg.FPS),
-            "-t", f"{duration:.3f}", "-movflags", "+faststart",
+            "-c:a", cfg.AUDIO_CODEC, "-b:a", cfg.AUDIO_BITRATE, "-ar", "44100",
+            "-movflags", "+faststart",
             os.path.abspath(output_path),
         ]
         # cwd = work dir so the subtitles filter can use a plain relative filename
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=600, cwd=work)
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=1500, cwd=work)
         if r.returncode != 0:
             print(f"ffmpeg failed (tail): {r.stderr[-1500:]}")
             return False

@@ -6,3 +6,6 @@ __pycache__/
 *.mp3
 node_modules/
 .DS_Store
+
+# keep the channel outro
+!assets/outro.mp4

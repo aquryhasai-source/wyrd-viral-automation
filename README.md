@@ -128,7 +128,7 @@ All values live in `config.py`: Luckiest Guy 80 white caption with 4px black
 stroke, at the top of the frame (300px down) for the first 3 seconds only; contrast 1.08 / brightness x0.96 grade;
 libx264 veryfast crf 22; AAC 192k; faststart. Fonts are bundled in
 `assets/fonts/`. Landscape clips get a blurred fill (`FIT_MODE = "crop"` for the
-old hard crop). Clips are capped at 59s.
+old hard crop).
 
 ## Telegram flow (video -> title -> description -> tags)
 
